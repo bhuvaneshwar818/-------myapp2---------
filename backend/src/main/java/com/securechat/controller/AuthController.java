@@ -92,6 +92,11 @@ public class AuthController {
                 .trustPercent(100)
                 .build();
 
+        com.securechat.model.PrivacySettings defaultSettings = com.securechat.model.PrivacySettings.builder()
+                .user(user)
+                .build();
+        user.setPrivacySettings(defaultSettings);
+
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));

@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Shield, Search, Settings, LogOut, Moon, Sun, 
   MessageSquare, ShieldAlert, Wind, UserPlus, 
-  Check, X, User, MoreVertical, ArrowRight, Lock
+  Check, X, User, MoreVertical, ArrowRight, Lock, Clock,
+  ArrowLeft, Camera, Paperclip, Mic, Send
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [sentRequests, setSentRequests] = useState([]);
   const [activeChat, setActiveChat] = useState(null); // The user object we are chatting with
   const [messages, setMessages] = useState([]); // All messages for the current session
   const [newMessage, setNewMessage] = useState('');
@@ -29,6 +31,27 @@ const Dashboard = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ old: '', new: '' });
   const navigate = useNavigate();
+
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+
+  const startResizing = React.useCallback((mouseDownEvent) => {
+    const startWidth = sidebarWidth;
+    const startPosition = mouseDownEvent.clientX;
+
+    const doDrag = (mouseMoveEvent) => {
+      setSidebarWidth(Math.min(Math.max(250, startWidth + mouseMoveEvent.clientX - startPosition), 500));
+    };
+
+    const stopDrag = () => {
+      document.removeEventListener('mousemove', doDrag);
+      document.removeEventListener('mouseup', stopDrag);
+      document.body.style.cursor = 'default';
+    };
+
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('mouseup', stopDrag);
+    document.body.style.cursor = 'col-resize';
+  }, [sidebarWidth]);
 
   useEffect(() => {
     if (currentUser) {
@@ -78,6 +101,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadPendingRequests();
+    loadSentRequests();
   }, []);
 
   const handleSearch = async () => {
@@ -98,10 +122,21 @@ const Dashboard = () => {
     }
   };
 
+  const loadSentRequests = async () => {
+    try {
+      const res = await ConnectionService.getSentRequests();
+      setSentRequests(res.data);
+    } catch (err) {
+      console.error("Failed to load sent requests", err);
+    }
+  };
+
   const sendRequest = async (userId) => {
     try {
       await ConnectionService.sendConnectionRequest(userId);
       toast.success("Connection request sent!");
+      setSearchQuery('');
+      loadSentRequests();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to send request");
     }
@@ -142,15 +177,44 @@ const Dashboard = () => {
   return (
     <div className="h-screen flex bg-slate-950 text-slate-50 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-[30%] border-r border-white/5 flex flex-col bg-slate-900/40 backdrop-blur-xl">
+      <aside 
+        style={{ width: `${sidebarWidth}px` }} 
+        className="shrink-0 flex flex-col bg-slate-900/40 backdrop-blur-xl relative"
+      >
+        {/* Resize Handle */}
+        <div 
+          onMouseDown={startResizing}
+          className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary-500/50 transition-colors z-50 group"
+        >
+          <div className="w-full h-full bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </div>
+
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="text-primary-500 w-6 h-6" />
-            <span className="text-xl font-bold tracking-tight">SecureChat</span>
+          <div 
+            className="flex items-center gap-2 cursor-pointer group"
+            onClick={() => {
+              setActiveChat(null);
+              setSearchQuery('');
+              setActiveTab('chats');
+            }}
+          >
+            <Shield className="text-primary-500 w-6 h-6 group-hover:scale-110 transition-transform" />
+            <span className="text-xl font-bold tracking-tight group-hover:text-primary-400 transition-colors">SecureChat</span>
           </div>
           <button className="p-2 hover:bg-white/5 rounded-full transition-colors">
             <MoreVertical size={18} className="text-slate-400" />
           </button>
+        </div>
+
+        <div className="p-4 border-b border-white/5">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Search active friends..." 
+              className="w-full bg-slate-800/80 border border-white/5 rounded-xl py-2 pl-9 pr-4 text-xs outline-none focus:border-primary-500/50 transition-all font-medium"
+            />
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
@@ -160,15 +224,18 @@ const Dashboard = () => {
           {[1, 2, 3].map((i) => (
             <motion.div 
               key={i}
-              whileHover={{ x: 4 }}
-              onClick={() => setActiveChat({ id: i + 100, username: `User_${i}42` })}
+              onClick={() => {
+                setActiveChat({ id: i + 100, username: `User_${i}42` });
+                setSearchQuery('');
+                setActiveTab('chats');
+              }}
               className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all group ${activeChat?.id === i + 100 ? 'bg-primary-600/10 border border-primary-500/20' : 'hover:bg-white/5'}`}
             >
-              <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/5">
-                  <User size={24} className="text-slate-500" />
+              <div className="relative shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5">
+                  <User size={20} className="text-slate-500" />
                 </div>
-                <div className="absolute -top-1 -left-1 w-3.5 h-3.5 bg-green-500 border-2 border-slate-950 rounded-full shadow-lg"></div>
+                <div className="absolute -top-1 -left-1 w-3 h-3 bg-green-500 border-2 border-slate-950 rounded-full shadow-lg"></div>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-0.5">
@@ -177,153 +244,139 @@ const Dashboard = () => {
                 </div>
                 <p className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">Hey, is this encrypted?</p>
               </div>
-              <div className="w-5 h-5 bg-primary-600 rounded-full flex items-center justify-center text-[10px] font-bold shadow-lg shadow-primary-900/40">
-                {i}
-              </div>
             </motion.div>
           ))}
         </div>
 
         {/* Sidebar Footer Buttons */}
-        <div className="p-4 grid grid-cols-4 gap-2 border-t border-white/5 bg-slate-950/20">
+        <div className="p-4 flex flex-col gap-2 border-t border-white/5 bg-slate-950/20">
           <button 
             onClick={() => setActiveTab('darkroom')}
-            className={`p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all ${activeTab === 'darkroom' ? 'bg-primary-600/10 text-primary-500' : 'hover:bg-white/5 text-slate-500'}`}
+            className={`p-3 rounded-xl flex items-center justify-start gap-4 transition-all ${activeTab === 'darkroom' ? 'bg-primary-600/10 text-primary-500' : 'hover:bg-white/5 text-slate-400'}`}
           >
-            <ShieldAlert size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-tighter">DarkRoom</span>
+            <ShieldAlert size={20} className="shrink-0" />
+            <span className="text-sm font-bold tracking-wide truncate">DarkRoom Mode</span>
           </button>
           <button 
             onClick={() => setActiveTab('evaporate')}
-            className={`p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all ${activeTab === 'evaporate' ? 'bg-blue-600/10 text-blue-500' : 'hover:bg-white/5 text-slate-500'}`}
+            className={`p-3 rounded-xl flex items-center justify-start gap-4 transition-all ${activeTab === 'evaporate' ? 'bg-blue-600/10 text-blue-500' : 'hover:bg-white/5 text-slate-400'}`}
           >
-            <Wind size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Evaporate</span>
+            <Wind size={20} className="shrink-0" />
+            <span className="text-sm font-bold tracking-wide truncate">Evaporate Mode</span>
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`p-3 rounded-xl flex flex-col items-center gap-1.5 transition-all ${activeTab === 'settings' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-slate-500'}`}
+            className={`p-3 rounded-xl flex items-center justify-start gap-4 transition-all ${activeTab === 'settings' ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-slate-400'}`}
           >
-            <Settings size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Settings</span>
+            <Settings size={20} className="shrink-0" />
+            <span className="text-sm font-bold tracking-wide truncate">General Settings</span>
           </button>
           <button 
             onClick={() => setIsLogoutModalOpen(true)}
-            className="p-3 rounded-xl flex flex-col items-center gap-1.5 hover:bg-red-500/10 text-slate-500 hover:text-red-500 transition-all"
+            className="p-3 rounded-xl flex items-center justify-start gap-4 hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-all group"
           >
-            <LogOut size={20} />
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Logout</span>
+            <LogOut size={20} className="shrink-0 group-hover:scale-110 transition-transform" />
+            <span className="text-sm font-bold tracking-wide truncate">Secure Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col bg-slate-950 relative">
-        {/* Header */}
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-slate-900/20 backdrop-blur-md">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-primary-600/20 border border-primary-500/30 flex items-center justify-center text-primary-500 uppercase font-bold text-sm">
-              {currentUser?.username?.charAt(0)}
-            </div>
-            <div>
-              <h2 className="font-bold text-lg">{currentUser?.username}</h2>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] text-slate-500 font-medium">Online</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative w-96 group">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary-500 transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Find users by username..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 outline-none focus:border-primary-500/50 transition-all text-sm font-medium"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </header>
 
         {/* Content Section */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {searchQuery ? (
-            <div className="flex-1 overflow-y-auto p-12">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
-                <h3 className="text-xl font-bold mb-8">Search Results for "{searchQuery}"</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {searchResults.map(user => (
-                    <div key={user.id} className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center justify-between group hover:border-primary-500/30 transition-all">
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center border border-white/5">
-                          <User size={30} className="text-slate-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-lg">{user.username}</h4>
-                          <div className="flex gap-4 mt-1">
-                            <div className="text-[10px] text-green-500 font-bold uppercase tracking-tighter">Trust {user.trustPercent}%</div>
-                            <div className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">Distrust {user.untrustPercent}%</div>
-                          </div>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => sendRequest(user.id)}
-                        className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition-all flex items-center gap-2"
-                      >
-                        <UserPlus size={16} /> Send Request
-                      </button>
+          {activeChat ? (
+            <div className="flex-1 flex flex-col overflow-hidden bg-slate-950/50">
+              {/* Chat Header Banner */}
+              <header className="h-20 shrink-0 border-b border-white/5 flex items-center px-8 bg-slate-900/60 backdrop-blur-md z-10 w-full">
+                <button 
+                  onClick={() => setActiveChat(null)}
+                  className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center mr-6 transition-colors group"
+                >
+                  <ArrowLeft size={20} className="text-slate-400 group-hover:text-white transition-colors" />
+                </button>
+                <div className="flex items-center gap-4 cursor-pointer group">
+                  <div className="w-11 h-11 rounded-2xl bg-slate-800 border-2 border-primary-500/30 flex items-center justify-center text-primary-500 font-bold text-lg shadow-lg group-hover:border-primary-500/80 transition-all">
+                    {activeChat?.username?.charAt(0)}
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-xl leading-tight text-white tracking-tight">{activeChat?.username}</h2>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]"></div>
+                      <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Online & Secure</span>
                     </div>
-                  ))}
-                  {searchResults.length === 0 && <p className="text-slate-500 font-medium">No users found.</p>}
+                  </div>
                 </div>
-              </motion.div>
-            </div>
-          ) : activeChat ? (
-            <div className="flex-1 flex flex-col overflow-hidden">
+              </header>
+
               {/* Message List */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
-                {messages.filter(m => (m.sender.id === activeChat.id) || (m.recipient.id === activeChat.id)).map((m, idx) => (
-                  <motion.div 
-                    initial={{ opacity: 0, x: m.sender.id === currentUser.id ? 20 : -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    key={idx} 
-                    className={`flex ${m.sender.id === currentUser.id ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-[70%] p-4 rounded-2xl ${
-                      m.sender.id === currentUser.id 
-                        ? 'bg-primary-600 text-white rounded-tr-none' 
-                        : 'bg-white/5 border border-white/10 text-slate-100 rounded-tl-none'
-                    } ${m.type === 'SECRET' ? 'border border-primary-500/30' : ''} ${m.type === 'EVAPORATING' ? 'border border-blue-500/30 animate-pulse' : ''}`}>
-                      <p className="text-sm leading-relaxed">{m.content}</p>
-                      <div className="flex items-center justify-between mt-2 opacity-50 text-[9px] font-bold uppercase tracking-widest">
-                        <span>{m.type}</span>
-                        {m.type === 'EVAPORATING' && <span>Self-destructing...</span>}
+              <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar flex flex-col">
+                <div className="mt-auto flex flex-col justify-end space-y-6">
+                  {messages.filter(m => (m.sender.id === activeChat.id) || (m.recipient.id === activeChat.id)).map((m, idx) => (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      key={idx} 
+                      className={`flex ${m.sender.id === currentUser.id ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[70%] p-4 rounded-3xl shadow-xl ${
+                        m.sender.id === currentUser.id 
+                          ? 'bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-br-sm' 
+                          : 'bg-slate-800/80 backdrop-blur-md border border-white/5 text-slate-100 rounded-bl-sm'
+                      } ${m.type === 'SECRET' ? 'ring-1 ring-primary-500/50 shadow-primary-900/20' : ''} ${m.type === 'EVAPORATING' ? 'ring-1 ring-blue-500/50 animate-pulse' : ''}`}>
+                        <p className="text-[15px] leading-relaxed font-medium">{m.content}</p>
+                        <div className="flex items-center justify-end gap-2 mt-2 opacity-60 text-[9px] font-bold uppercase tracking-widest">
+                          <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          {m.type === 'EVAPORATING' && <span className="text-blue-300">Self-destructing</span>}
+                        </div>
                       </div>
+                    </motion.div>
+                  ))}
+                  {messages.filter(m => (m.sender.id === activeChat.id) || (m.recipient.id === activeChat.id)).length === 0 && (
+                    <div className="w-full flex flex-col items-center justify-center py-10 opacity-40">
+                      <Shield size={48} className="text-primary-500 mb-4" />
+                      <p className="text-sm font-bold text-slate-400">End-to-end encrypted connection established.</p>
+                      <p className="text-xs font-medium text-slate-500">Messages are secured and grow upwards automatically.</p>
                     </div>
-                  </motion.div>
-                ))}
+                  )}
+                </div>
               </div>
               
-              {/* Message Input */}
-              <div className="p-6 bg-slate-900/40 border-t border-white/5">
-                <div className="max-w-4xl mx-auto relative flex items-center gap-4">
-                  <div className="flex-1 relative">
-                    <input 
-                      type="text" 
-                      placeholder="Type your secure message..."
-                      className="w-full bg-slate-800 border border-white/10 rounded-2xl py-4 px-6 outline-none focus:border-primary-500/50 transition-all text-sm"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    />
-                  </div>
-                  <button 
-                    onClick={handleSendMessage}
-                    className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary-900/40 hover:bg-primary-700 transition-all active:scale-90"
-                  >
-                    <ArrowRight size={24} />
+              {/* Message Input Container */}
+              <div className="p-6 bg-slate-900/60 backdrop-blur-xl border-t border-white/5 shrink-0">
+                <div className="max-w-5xl mx-auto focus-within:ring-1 ring-primary-500/30 rounded-[2rem] transition-all bg-slate-950 p-2 flex items-center gap-2 border border-white/10 shadow-2xl">
+                  {/* Left Action Icons */}
+                  <button className="w-12 h-12 flex shrink-0 items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                    <Paperclip size={22} className="rotate-45" />
                   </button>
+                  <button className="w-12 h-12 flex shrink-0 items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                    <Camera size={22} />
+                  </button>
+
+                  {/* Text Input */}
+                  <input 
+                    type="text" 
+                    placeholder="Message..."
+                    className="flex-1 bg-transparent border-none px-4 py-3 outline-none text-[15px] text-white placeholder:text-slate-500 font-medium h-12"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  />
+
+                  {/* Right Action Icons */}
+                  {newMessage.trim() === '' ? (
+                    <button className="w-12 h-12 flex shrink-0 items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 rounded-2xl transition-all">
+                      <Mic size={22} />
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleSendMessage}
+                      className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-600 text-white flex items-center justify-center hover:shadow-lg hover:shadow-primary-500/25 transition-all transform active:scale-90"
+                    >
+                      <Send size={20} className="translate-x-0.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -389,34 +442,130 @@ const Dashboard = () => {
               </motion.div>
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto p-12">
-              <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto">
-                <div className="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mb-8 border border-white/10">
-                  <MessageSquare size={40} className="text-slate-700" />
-                </div>
-                <h3 className="text-2xl font-bold mb-4">No active conversation</h3>
-                <p className="text-slate-500 leading-relaxed font-medium">Select a friend from the sidebar or search for a new contact to start chatting securely.</p>
-                
-                <div className="mt-12 w-full p-8 rounded-3xl border border-dashed border-white/10 text-left">
-                  <h4 className="text-sm font-bold mb-4 uppercase tracking-widest text-primary-500">Incoming Requests</h4>
-                  <div className="space-y-4">
-                    {pendingRequests.map(req => (
-                      <div key={req.id} className="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
-                            <User size={20} className="text-slate-600" />
-                          </div>
-                          <span className="font-bold text-sm">{req.user.username}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => acceptRequest(req.id)} className="w-9 h-9 bg-green-500/20 text-green-500 rounded-lg flex items-center justify-center hover:bg-green-500 hover:text-white transition-all"><Check size={20} /></button>
-                          <button className="w-9 h-9 bg-red-500/20 text-red-500 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><X size={20} /></button>
-                        </div>
-                      </div>
-                    ))}
-                    {pendingRequests.length === 0 && <p className="text-xs text-slate-500 font-medium">No pending requests.</p>}
+            <div className="flex-1 overflow-y-auto p-16 bg-slate-950 flex flex-col gap-16">
+              <div className="flex justify-between items-start w-full">
+                {/* Account Details Header */}
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-6 relative z-10">
+                  <div className="w-24 h-24 rounded-[2rem] bg-slate-800 border-2 border-primary-500/50 flex items-center justify-center text-4xl font-black text-primary-500 shadow-xl shadow-primary-900/40">
+                    {currentUser?.username?.charAt(0)}
                   </div>
-                </div>
+                  <div>
+                    <h2 className="text-4xl font-black text-white tracking-tighter mb-3">{currentUser?.username}</h2>
+                    <div className="flex gap-4">
+                      <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold uppercase tracking-widest"><Shield size={14}/> Trust {currentUser?.trustPercent || 100}%</span>
+                      <span className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold uppercase tracking-widest"><ShieldAlert size={14}/> Distrust {currentUser?.untrustPercent || 0}%</span>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Search Bar for New Users */}
+                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="relative group w-[500px] mt-2">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-indigo-600 rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
+                  <div className="relative bg-slate-900/80 backdrop-blur-md flex items-center p-2 rounded-2xl border border-white/10 shadow-2xl">
+                    <Search className="text-primary-500 ml-5 mr-3" size={20} />
+                    <input 
+                      type="text" 
+                      placeholder="Search global network for new users..."
+                      className="w-full bg-transparent border-none py-3 px-2 text-slate-100 outline-none font-bold text-sm placeholder:text-slate-500 placeholder:font-medium"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Dynamic Bottom Area: Either Search Results OR Requests Grid */}
+              <div className="flex-1">
+                {searchQuery ? (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-primary-500 mb-6 flex items-center gap-2"><Search size={14} /> Network Search Results</h3>
+                    <div className="grid grid-cols-2 gap-8">
+                      {searchResults.map(user => (
+                        <div key={user.id} className="bg-slate-900/40 border border-white/5 p-6 rounded-[2rem] flex items-center justify-between group hover:border-primary-500/30 transition-all shadow-xl">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-slate-800 border-2 border-white/5 flex items-center justify-center text-slate-400 font-bold text-lg shadow-lg">
+                              {user.username.charAt(0)}
+                            </div>
+                            <div>
+                              <h4 className="font-black text-xl text-white mb-1">{user.username}</h4>
+                              <div className="flex gap-3 mt-1">
+                                <span className="px-2 py-0.5 rounded border border-green-500/20 bg-green-500/10 text-green-400 text-[9px] font-bold uppercase tracking-widest">Trust {user.trustPercent}%</span>
+                                <span className="px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400 text-[9px] font-bold uppercase tracking-widest">Distrust {user.untrustPercent}%</span>
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => sendRequest(user.id)}
+                            className="w-12 h-12 bg-primary-600/10 text-primary-500 border border-primary-500/20 rounded-2xl flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all active:scale-90"
+                          >
+                            <UserPlus size={20} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {searchResults.length === 0 && (
+                      <div className="w-full py-16 flex flex-col items-center justify-center opacity-50 bg-slate-900/20 border border-dashed border-white/5 rounded-[2rem]">
+                        <Search size={48} className="text-slate-600 mb-4" />
+                        <p className="text-sm font-bold text-slate-500">No verifiable identities found across the SecureChat network matching "{searchQuery}"</p>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-12">
+                    {/* Incoming Requests */}
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="bg-slate-900/40 border border-white/5 rounded-3xl p-6">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-6 flex items-center gap-2"><ArrowRight size={14} className="rotate-90" /> Incoming Requests</h3>
+                      <div className="space-y-3">
+                        {pendingRequests.map(req => (
+                          <div key={req.id} className="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-white/5 transition-all hover:border-white/10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-primary-500 font-bold text-sm border border-primary-500/20">
+                                {req.user.username.charAt(0)}
+                              </div>
+                              <span className="font-bold text-sm text-slate-200">{req.user.username}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => acceptRequest(req.id)} className="w-8 h-8 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center hover:bg-green-500 hover:text-white transition-all"><Check size={16} /></button>
+                              <button className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><X size={16} /></button>
+                            </div>
+                          </div>
+                        ))}
+                        {pendingRequests.length === 0 && (
+                          <div className="flex flex-col items-center justify-center py-8 opacity-50">
+                            <UserPlus size={32} className="text-slate-600 mb-3" />
+                            <p className="text-xs font-bold text-slate-500">No incoming requests</p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+
+                    {/* Sent Requests */}
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="bg-slate-900/40 border border-white/5 rounded-3xl p-6">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2"><ArrowRight size={14} className="-rotate-45" /> Sent Requests</h3>
+                      <div className="space-y-3">
+                        {sentRequests.map(req => (
+                          <div key={req.id} className="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-white/5 transition-all hover:border-white/10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 font-bold text-sm border border-white/10">
+                                {req.connectedUser.username.charAt(0)}
+                              </div>
+                              <span className="font-bold text-sm text-slate-400">{req.connectedUser.username}</span>
+                            </div>
+                            <div>
+                               <span className="px-3 py-1 bg-yellow-500/10 text-yellow-500 text-[10px] font-bold uppercase tracking-widest border border-yellow-500/20 rounded-lg">Pending</span>
+                            </div>
+                          </div>
+                        ))}
+                        {sentRequests.length === 0 && (
+                          <div className="flex flex-col items-center justify-center py-8 opacity-50">
+                            <Clock size={32} className="text-slate-600 mb-3" />
+                            <p className="text-xs font-bold text-slate-500">No outbound requests</p>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
               </div>
             </div>
           )}

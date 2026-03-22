@@ -64,4 +64,11 @@ public class ConnectionController {
         User currentUser = userRepository.findByUsername(username).get();
         return ResponseEntity.ok(connectionRepository.findByConnectedUserAndStatus(currentUser, Connection.ConnectionStatus.PENDING));
     }
+
+    @GetMapping("/sent")
+    public ResponseEntity<?> getSentRequests() {
+        String username = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        User currentUser = userRepository.findByUsername(username).get();
+        return ResponseEntity.ok(connectionRepository.findByUserAndStatus(currentUser, Connection.ConnectionStatus.PENDING));
+    }
 }

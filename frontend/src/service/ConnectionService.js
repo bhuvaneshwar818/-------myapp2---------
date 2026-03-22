@@ -31,6 +31,12 @@ const getPendingRequests = () => {
     });
 };
 
+const getSentRequests = () => {
+    return axios.get(API_CONN_URL + 'sent', {
+        headers: getAuthHeader()
+    });
+};
+
 const acceptRequest = (requestId) => {
     return axios.post(API_CONN_URL + `accept/${requestId}`, {}, {
         headers: getAuthHeader()
@@ -41,6 +47,7 @@ const ConnectionService = {
     searchUsers,
     sendConnectionRequest,
     getPendingRequests,
+    getSentRequests,
     acceptRequest
 };
 

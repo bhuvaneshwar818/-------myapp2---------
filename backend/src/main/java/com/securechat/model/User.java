@@ -16,6 +16,9 @@ import java.util.Date;
 @Builder
 public class User {
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private PrivacySettings privacySettings;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
