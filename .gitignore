@@ -1,0 +1,80 @@
+# ===============================
+# OS Files
+# ===============================
+.DS_Store
+Thumbs.db
+
+# ===============================
+# Logs
+# ===============================
+*.log
+*.out
+*.err
+*.txt
+
+# ===============================
+# Environment Variables
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# IDE / Editor
+# ===============================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# ===============================
+# Node.js (Frontend)
+# ===============================
+node_modules/
+frontend/node_modules/
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+
+# ===============================
+# Java / Maven (Backend)
+# ===============================
+target/
+backend/target/
+
+# Maven wrapper logs
+.mvn/wrapper/maven-wrapper.jar
+
+# ===============================
+# Spring Boot
+# ===============================
+*.class
+*.jar
+*.war
+*.ear
+
+# ===============================
+# Temporary files
+# ===============================
+*.swp
+*.swo
+*~
+
+# ===============================
+# Coverage / Testing
+# ===============================
+coverage/
+.nyc_output/
+
+# ===============================
+# Misc
+# ===============================
+.cache/
+.tmp/

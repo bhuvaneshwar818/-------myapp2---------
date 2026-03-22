@@ -1,0 +1,68 @@
+import axios from 'axios';
+
+const API_URL = '/api/auth/';
+
+const register = (userData) => {
+  return axios.post(API_URL + 'signup', userData);
+};
+
+const login = (username, password) => {
+  return axios
+    .post(API_URL + 'signin', { username, password })
+    .then((response) => {
+      if (response.data.token) {
+        localStorage.setItem('user', JSON.stringify(response.data));
+      }
+      return response.data;
+    });
+};
+
+const logout = () => {
+  localStorage.removeItem('user');
+};
+
+const getCurrentUser = () => {
+  return JSON.parse(localStorage.getItem('user'));
+};
+
+const forgotUsername = (email, phone, dob) => {
+  return axios.post(API_URL + 'forgot-username', { email, phone, dob });
+};
+
+const forgotPassword = (username, email) => {
+  return axios.post(API_URL + 'forgot-password', { username, email });
+};
+
+const verifyOtp = (email, otp) => {
+  return axios.post(API_URL + 'verify-otp', null, { params: { email, otp } });
+};
+
+const resetPassword = (email, newPassword) => {
+    return axios.post(API_URL + 'reset-password', { email, newPassword });
+};
+
+const sendSignupOtp = (email) => {
+    return axios.post(API_URL + 'send-signup-otp', null, { params: { email } });
+};
+
+const changePassword = (oldPassword, newPassword) => {
+    return axios.post('/api/users/change-password', null, {
+        params: { oldPassword, newPassword },
+        headers: { Authorization: 'Bearer ' + JSON.parse(localStorage.getItem('user')).token }
+    });
+};
+
+const AuthService = {
+  register,
+  login,
+  logout,
+  getCurrentUser,
+  forgotUsername,
+  forgotPassword,
+  verifyOtp,
+  resetPassword,
+  changePassword,
+  sendSignupOtp
+};
+
+export default AuthService;
