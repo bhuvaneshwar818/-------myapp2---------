@@ -182,6 +182,21 @@ const SignInPage = () => {
             <div className="flex justify-center mb-6">
               <OtpInput value={resetOtp} onChange={setResetOtp} />
             </div>
+            <div className="flex justify-center mb-4">
+              <button 
+                onClick={async () => {
+                  try {
+                    await AuthService.forgotPassword(recoveryData.username, recoveryData.email);
+                    toast.success("New OTP sent!");
+                  } catch (e) {
+                    toast.error("Failed to resend OTP");
+                  }
+                }}
+                className="text-primary-500 hover:text-primary-400 text-sm font-bold hover:underline transition-all"
+              >
+                Resend OTP
+              </button>
+            </div>
             <button 
               onClick={async () => {
                 if (resetOtp.length !== 6) return;

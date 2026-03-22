@@ -24,7 +24,7 @@ public class UserController {
     PasswordEncoder encoder;
 
     @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestParam String oldPassword, @RequestParam String newPassword) {
+    public ResponseEntity<?> changePassword(@RequestParam("oldPassword") String oldPassword, @RequestParam("newPassword") String newPassword) {
         String username = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
         User user = userRepository.findByUsername(username).get();
 
@@ -39,7 +39,7 @@ public class UserController {
 
 
     @GetMapping("/search")
-    public ResponseEntity<?> searchUsers(@RequestParam String query) {
+    public ResponseEntity<?> searchUsers(@RequestParam("query") String query) {
         List<User> users = userRepository.findByUsernameContaining(query);
         // Map to a simpler response to avoid leaking sensitive info
         return ResponseEntity.ok(users.stream().map(user -> {

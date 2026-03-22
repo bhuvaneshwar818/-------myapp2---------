@@ -98,7 +98,7 @@ public class AuthController {
     }
 
     @PostMapping("/send-signup-otp")
-    public ResponseEntity<?> sendSignupOtp(@RequestParam String email) {
+    public ResponseEntity<?> sendSignupOtp(@RequestParam("email") String email) {
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
         }
@@ -157,12 +157,20 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
+    public ResponseEntity<?> verifyOtp(@RequestParam("email") String email, @RequestParam("otp") String otp) {
+        System.out.println("ATTEMPTING OTP VERIFY -> Email: '" + email + "' OTP: '" + otp + "'");
         Optional<com.securechat.model.OtpLog> otpLog = otpRepository.findByEmailAndOtpAndIsUsedFalse(email, otp);
-        if (otpLog.isPresent() && otpLog.get().getExpiryTime().isAfter(java.time.LocalDateTime.now())) {
-            otpLog.get().setUsed(true);
-            otpRepository.save(otpLog.get());
-            return ResponseEntity.ok(new MessageResponse("OTP verified successfully."));
+        if (otpLog.isPresent()) {
+            boolean isAfter = otpLog.get().getExpiryTime().isAfter(java.time.LocalDateTime.now());
+            System.out.println("OTP MATCH FOUND! Valid Time Remaining? " + isAfter + " | DB_TIME: " + otpLog.get().getExpiryTime() + " | SYSTEM_TIME: " + java.time.LocalDateTime.now());
+            if (isAfter) {
+                otpLog.get().setUsed(true);
+                otpRepository.save(otpLog.get());
+                System.out.println("SUCCESSFULLY VERIFIED AND MARKED USED.");
+                return ResponseEntity.ok(new MessageResponse("OTP verified successfully."));
+            }
+        } else {
+            System.out.println("FAILED TO FIND OTP! Either email doesn't match perfectly, OTP is wrong, or isUsed is already true!");
         }
         return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid or expired OTP."));
     }
