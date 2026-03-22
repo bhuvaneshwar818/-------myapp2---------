@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Lock, Chrome, Shield, Mail, Phone } from 'lucide-react';
+import { User, Lock, Chrome, Shield, Mail, Phone, CheckCircle2 } from 'lucide-react';
 
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
@@ -186,6 +186,7 @@ const SignInPage = () => {
               <button 
                 onClick={async () => {
                   try {
+                    setResetOtp('');
                     await AuthService.forgotPassword(recoveryData.username, recoveryData.email);
                     toast.success("New OTP sent!");
                   } catch (e) {
@@ -223,7 +224,27 @@ const SignInPage = () => {
             <p className="text-sm text-slate-400 mb-6 font-medium leading-relaxed text-center px-4">
               Enter your new secret password.
             </p>
-            <Input icon={Lock} type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} valid={newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[0-9!@#$%^&*]/.test(newPassword)} error={(showRecoveryErrors && (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9!@#$%^&*]/.test(newPassword))) || (newPassword.length > 0 && (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9!@#$%^&*]/.test(newPassword)))} />
+            <div>
+              <Input icon={Lock} type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} valid={newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[0-9!@#$%^&*]/.test(newPassword)} error={(showRecoveryErrors && (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9!@#$%^&*]/.test(newPassword))) || (newPassword.length > 0 && (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[0-9!@#$%^&*]/.test(newPassword)))} />
+              
+              <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4 mt-2 mb-4">
+                <p className="text-xs font-semibold text-slate-500 mb-3 tracking-wider uppercase">Security Standards</p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 size={16} className={newPassword.length >= 8 ? "text-green-500" : "text-slate-600"} />
+                    <span className={newPassword.length >= 8 ? "text-slate-200" : "text-slate-500"}>At least 8 characters</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 size={16} className={/[A-Z]/.test(newPassword) ? "text-green-500" : "text-slate-600"} />
+                    <span className={/[A-Z]/.test(newPassword) ? "text-slate-200" : "text-slate-500"}>One uppercase letter</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 size={16} className={/[0-9!@#$%^&*]/.test(newPassword) ? "text-green-500" : "text-slate-600"} />
+                    <span className={/[0-9!@#$%^&*]/.test(newPassword) ? "text-slate-200" : "text-slate-500"}>One digit & special character</span>
+                  </div>
+                </div>
+              </div>
+            </div>
             <Input icon={Lock} type="password" placeholder="Confirm Password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} valid={confirmNewPassword && newPassword === confirmNewPassword} error={(showRecoveryErrors && newPassword !== confirmNewPassword) || (confirmNewPassword.length > 0 && newPassword !== confirmNewPassword)} />
             <button 
               onClick={async () => {
