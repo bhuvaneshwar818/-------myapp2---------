@@ -17,8 +17,28 @@ const login = (username, password) => {
     });
 };
 
+const ping = () => {
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    return axios.post(API_URL + 'ping', null, { 
+      headers: { Authorization: 'Bearer ' + user.token } 
+    }).catch(e => {}); // Silent catch 
+  }
+};
+
 const logout = () => {
-  localStorage.removeItem('user');
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    const user = JSON.parse(userStr);
+    axios.post(API_URL + 'logout', null, { 
+      headers: { Authorization: 'Bearer ' + user.token } 
+    }).catch(e => console.error(e)).finally(() => {
+      localStorage.removeItem('user');
+    });
+  } else {
+    localStorage.removeItem('user');
+  }
 };
 
 const getCurrentUser = () => {
@@ -56,6 +76,7 @@ const AuthService = {
   register,
   login,
   logout,
+  ping,
   getCurrentUser,
   forgotUsername,
   forgotPassword,

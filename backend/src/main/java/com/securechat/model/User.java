@@ -44,6 +44,9 @@ public class User {
     @Column(columnDefinition = "boolean default true")
     private boolean isOnline = false;
 
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date lastActive;
+
     @Builder.Default
     private int trustPercent = 100;
     @Builder.Default

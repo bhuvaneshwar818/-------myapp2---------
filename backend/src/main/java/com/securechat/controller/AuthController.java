@@ -58,11 +58,46 @@ public class AuthController {
         String jwt = jwtUtils.generateJwtToken(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        
+        User user = userRepository.findByUsername(userDetails.getUsername()).get();
+        user.setOnline(true);
+        userRepository.save(user);
 
         return ResponseEntity.ok(new JwtResponse(jwt,
                 userDetails.getId(),
                 userDetails.getUsername(),
                 userDetails.getEmail()));
+    }
+
+    @PostMapping("/ping")
+    public ResponseEntity<?> pingUser() {
+        try {
+            String username = ((UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+            if (username != null) {
+                userRepository.findByUsername(username).ifPresent(user -> {
+                    user.setOnline(true);
+                    user.setLastActive(new java.util.Date());
+                    userRepository.save(user);
+                });
+            }
+        } catch (Exception e) {}
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logoutUser() {
+        try {
+            String username = ((UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+            if (username != null) {
+                userRepository.findByUsername(username).ifPresent(user -> {
+                    user.setOnline(false);
+                    userRepository.save(user);
+                });
+            }
+        } catch (Exception e) {
+            // Ignore if security context is empty
+        }
+        return ResponseEntity.ok(new MessageResponse("Logged out successfully!"));
     }
 
     @PostMapping("/signup")

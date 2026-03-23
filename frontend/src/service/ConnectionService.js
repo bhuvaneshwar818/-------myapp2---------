@@ -37,6 +37,12 @@ const getSentRequests = () => {
     });
 };
 
+const getActiveConnections = () => {
+    return axios.get(API_CONN_URL + 'active', {
+        headers: getAuthHeader()
+    });
+};
+
 const acceptRequest = (requestId) => {
     return axios.post(API_CONN_URL + `accept/${requestId}`, {}, {
         headers: getAuthHeader()
@@ -48,6 +54,7 @@ const ConnectionService = {
     sendConnectionRequest,
     getPendingRequests,
     getSentRequests,
+    getActiveConnections,
     acceptRequest
 };
 

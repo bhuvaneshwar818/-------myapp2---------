@@ -71,4 +71,19 @@ public class ConnectionController {
         User currentUser = userRepository.findByUsername(username).get();
         return ResponseEntity.ok(connectionRepository.findByUserAndStatus(currentUser, Connection.ConnectionStatus.PENDING));
     }
+
+    @GetMapping("/active")
+    public ResponseEntity<?> getActiveConnections() {
+        String username = ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
+        User currentUser = userRepository.findByUsername(username).get();
+        
+        java.util.List<Connection> connections = connectionRepository.findByUserAndStatus(currentUser, Connection.ConnectionStatus.ACCEPTED);
+        connections.addAll(connectionRepository.findByConnectedUserAndStatus(currentUser, Connection.ConnectionStatus.ACCEPTED));
+        
+        java.util.List<User> activeUsers = connections.stream()
+                .map(c -> c.getUser().getId().equals(currentUser.getId()) ? c.getConnectedUser() : c.getUser())
+                .collect(java.util.stream.Collectors.toList());
+                
+        return ResponseEntity.ok(activeUsers);
+    }
 }

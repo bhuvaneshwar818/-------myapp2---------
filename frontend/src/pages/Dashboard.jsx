@@ -24,6 +24,7 @@ const Dashboard = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [sentRequests, setSentRequests] = useState([]);
+  const [activeConnections, setActiveConnections] = useState([]);
   const [activeChat, setActiveChat] = useState(null); // The user object we are chatting with
   const [messages, setMessages] = useState([]); // All messages for the current session
   const [newMessage, setNewMessage] = useState('');
@@ -102,6 +103,14 @@ const Dashboard = () => {
   useEffect(() => {
     loadPendingRequests();
     loadSentRequests();
+    loadActiveConnections();
+
+    AuthService.ping();
+    const pingInterval = setInterval(() => {
+      AuthService.ping();
+    }, 10000);
+
+    return () => clearInterval(pingInterval);
   }, []);
 
   const handleSearch = async () => {
@@ -128,6 +137,15 @@ const Dashboard = () => {
       setSentRequests(res.data);
     } catch (err) {
       console.error("Failed to load sent requests", err);
+    }
+  };
+
+  const loadActiveConnections = async () => {
+    try {
+      const res = await ConnectionService.getActiveConnections();
+      setActiveConnections(res.data);
+    } catch (err) {
+      console.error("Failed to load active connections", err);
     }
   };
 
@@ -220,32 +238,37 @@ const Dashboard = () => {
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
           <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-4 px-2">Connected Users</p>
           
-          {/* Mock Connection List */}
-          {[1, 2, 3].map((i) => (
+          {/* Active Connection List */}
+          {activeConnections.map((user) => (
             <motion.div 
-              key={i}
+              key={user.id}
               onClick={() => {
-                setActiveChat({ id: i + 100, username: `User_${i}42` });
+                setActiveChat(user);
                 setSearchQuery('');
                 setActiveTab('chats');
               }}
-              className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all group ${activeChat?.id === i + 100 ? 'bg-primary-600/10 border border-primary-500/20' : 'hover:bg-white/5'}`}
+              className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-all group ${activeChat?.id === user.id ? 'bg-primary-600/10 border border-primary-500/20' : 'hover:bg-white/5'}`}
             >
               <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5">
-                  <User size={20} className="text-slate-500" />
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-white/5 font-bold text-slate-400 group-hover:text-primary-500 transition-colors text-lg shadow-inner">
+                  {user.username.charAt(0)}
                 </div>
-                <div className="absolute -top-1 -left-1 w-3 h-3 bg-green-500 border-2 border-slate-950 rounded-full shadow-lg"></div>
+                {(user.online === true || user.isOnline === true) && (
+                  <div className="absolute -top-1 -left-1 w-3 h-3 bg-green-500 border-2 border-slate-950 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse"></div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-0.5">
-                  <h4 className="font-bold text-sm truncate">User_{i}42</h4>
-                  <span className="text-[10px] text-slate-500">12:45 PM</span>
+                  <span className="font-bold text-[15px] text-slate-200 group-hover:text-primary-400 transition-colors truncate">{user.username}</span>
                 </div>
-                <p className="text-xs text-slate-500 truncate group-hover:text-slate-400 transition-colors">Hey, is this encrypted?</p>
               </div>
             </motion.div>
           ))}
+          {activeConnections.length === 0 && (
+             <div className="px-4 py-8 text-center text-slate-500 text-xs font-bold opacity-60">
+                 No active connections yet.
+             </div>
+          )}
         </div>
 
         {/* Sidebar Footer Buttons */}

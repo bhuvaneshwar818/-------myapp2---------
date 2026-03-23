@@ -14,4 +14,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Boolean existsByEmail(String email);
     
     List<User> findByUsernameContaining(String username);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE User u SET u.isOnline = false WHERE u.lastActive < :threshold OR u.lastActive IS NULL")
+    void markOfflineUsers(@org.springframework.data.repository.query.Param("threshold") java.util.Date threshold);
 }
